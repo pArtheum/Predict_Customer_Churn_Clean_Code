@@ -12,7 +12,7 @@ Created Date: Tuesday, August 29th 2023, 11:52:00 am
 
 -----
 
-Last Modified: Wed Aug 30 2023
+Last Modified: Sun Sep 03 2023
 Modified By: Artem Plastinkin
 
 -----
@@ -53,7 +53,7 @@ def import_data(pth):
     return pd.read_csv(pth)
 
 
-def perform_eda(data_frame):
+def perform_eda(data_frame, show_flag:bool=True):
     '''
     perform eda on data_frame and save figures to images folder
     input:
@@ -70,25 +70,29 @@ def perform_eda(data_frame):
     data_frame['Churn'].hist()
     plt.tight_layout()
     plt.savefig(os.path.join("./images/eda", 'test.png'))
-    plt.show()
-    plt.close()
+    if show_flag:
+        plt.show(block=False)
 
     plt.figure(figsize=(20, 10))
     data_frame['Customer_Age'].hist()
     plt.tight_layout()
     plt.savefig(os.path.join("./images/eda", 'Customer_Age.png'))
-    plt.show()
-    plt.close()
+    if show_flag:
+        plt.show(block=False)
 
     plt.figure(figsize=(20, 10))
     data_frame.Marital_Status.value_counts('normalize').plot(kind='bar')
+    plt.savefig(os.path.join("./images/eda", 'marital_status.png'))
 
     plt.figure(figsize=(20, 10))
     sns.histplot(data_frame['Total_Trans_Ct'], stat='density', kde=True)
+    plt.savefig(os.path.join("./images/eda", 'total_trans_hist.png'))
 
     plt.figure(figsize=(20, 10))
     sns.heatmap(data_frame.corr(), annot=False, cmap='Dark2_r', linewidths=2)
-    plt.show()
+    plt.savefig(os.path.join("./images/eda", 'corr_heatmap.png'))
+    if show_flag:
+        plt.show()
 
 
 def encoder_helper(data_frame, category_lst, response):
@@ -200,13 +204,13 @@ def classification_report_image(y_train,
     output:
              None
     '''
-    generate_classification_report('Logistic Regression',
+    generate_classification_report('Logistic_Regression',
                                    y_train,
                                    y_test,
                                    y_train_preds_lr,
                                    y_test_preds_lr)
 
-    generate_classification_report('Random Forest',
+    generate_classification_report('Random_Forest',
                                    y_train,
                                    y_test,
                                    y_train_preds_rf,
@@ -316,7 +320,11 @@ def train_models(x_train, x_test, y_train, y_test):
 
 
 if __name__ == "__main__":
+    print("Importing Data")
     dataset = import_data("./data/bank_data.csv")
-    perform_eda(dataset)
+    print("Perform EDA")
+    perform_eda(dataset, show_flag=False)
+    print("Feature Engineering")
     x_train, x_test, y_train, y_test = perform_feature_engineering(dataset, response='Churn')
+    print("Train Models")
     train_models(x_train, x_test, y_train, y_test)
