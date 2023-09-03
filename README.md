@@ -41,9 +41,9 @@ The project is organized as follows:
 
 All python files were designed following pep8 rules and ratied as follows by pylint:
 
-- churn_library.py = 9.15
+- churn_library.py = 9.21
 - constant.py      = 10
-- churn_script_logging_and_testing.py =
+- churn_script_logging_and_testing.py = 8.64
 
 
 ## Running Files

@@ -1,0 +1,5 @@
+root - INFO - Testing import_data functionnality: SUCCESS
+root - INFO - Testing perform_eda functionnality: SUCCESS
+root - INFO - Testing encoder_helper functionnality: SUCCESS
+root - INFO - Testing perform_feature_engineering functionnality: SUCCESS
+root - INFO - Testing perform_feature_engineering functionnality: SUCCESS
