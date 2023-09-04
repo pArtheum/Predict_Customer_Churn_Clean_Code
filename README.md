@@ -41,9 +41,9 @@ The project is organized as follows:
 
 All python files were designed following pep8 rules and ratied as follows by pylint:
 
-- churn_library.py = 9.21
+- churn_library.py = 8.28
 - constant.py      = 10
-- churn_script_logging_and_testing.py = 8.64
+- churn_script_logging_and_testing.py = 8.32
 
 
 ## Running Files
@@ -70,3 +70,11 @@ or
 
 - churn_notebook.ipynb
 
+### How to test the the functionnality
+
+For this project, each function can be tested using dedicated module.
+To run the tests:
+```
+python churn_script_logging_and_tests.py
+```
+It will print function under tests and for more detailed logging please check logs/churn_library.log file.

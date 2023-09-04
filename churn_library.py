@@ -12,7 +12,7 @@ Created Date: Tuesday, August 29th 2023, 11:52:00 am
 
 -----
 
-Last Modified: Sun Sep 03 2023
+Last Modified: Mon Sep 04 2023
 Modified By: Artem Plastinkin
 
 -----
@@ -34,6 +34,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import joblib
+import shap
 
 from constant import CAT_COLUMNS, KEEP_COLUMNS
 
@@ -162,16 +163,17 @@ def generate_classification_report(model_name,
 
     font_size = {'fontsize': 10}
     # Plot Classification report on Train dataset
-    plt.text(0.01, 1.25, f'{model_name} Train', font_size, fontproperties='monospace')
+    plt.text(0.01, 1.25, f'{model_name} Train', font_size)
     plt.text(0.01, 0.05,
              str(classification_report(y_train, y_train_preds)),
-             font_size, fontproperties='monospace')
+             font_size)
 
     # Plot Classification report on Test dataset
-    plt.text(0.01, 0.6, f'{model_name} Test', font_size, fontproperties='monospace')
+    plt.text(0.01, 0.6, f'{model_name} Test', font_size)
     plt.text(0.01, 0.7,
              str(classification_report(y_test, y_test_preds)),
-             font_size, fontproperties='monospace')
+             font_size
+             )
 
     plt.axis('off')
 
@@ -258,14 +260,12 @@ def feature_importance_plot(model, x_data, output_pth):
     plt.close()
 
 
-def train_models(x_train, x_test, y_train, y_test):
+def train_models(x_train, y_train):
     '''
     train, store model results: images + scores, and store models
     input:
               X_train: X training data
-              X_test: X testing data
               y_train: y training data
-              y_test: y testing data
     output:
               None
     '''
@@ -287,22 +287,52 @@ def train_models(x_train, x_test, y_train, y_test):
 
     lrc.fit(x_train, y_train)
 
-    y_train_preds_rf = cv_rfc.best_estimator_.predict(x_train)
-    y_test_preds_rf = cv_rfc.best_estimator_.predict(x_test)
+    joblib.dump(cv_rfc.best_estimator_, './models/rfc_model.pkl')
+    joblib.dump(lrc, './models/logistic_model.pkl')
 
-    y_train_preds_lr = lrc.predict(x_train)
-    y_test_preds_lr = lrc.predict(x_test)
 
+def predict_models(model, predict_input):
+    '''
+    train, store model results: images + scores, and store models
+    input:
+              model: model with which to do the prediciton
+              predict_input: input for prediction
+    output:
+              prediction
+    '''
+    return model.predict(predict_input)
+
+def evaluate_models(lrc_model, rfc_model,
+                    x_train, x_test,
+                    y_train, y_test,
+                    y_train_preds_lr, y_train_preds_rf,
+                    y_test_preds_lr, y_test_preds_rf):
+    '''
+    evaluate model results: images + scores
+    input:
+              lrc_model: logarithmic regression model
+              rfc_model: random forest model
+              x_train: X training data
+              x_test: X testing data
+              y_train: y training data
+              y_test: y testing data
+              y_train_preds_lr: y predicted data by log regression on training
+              y_train_preds_rf: y predicted data by log regression on training
+              y_test_preds_lr: y predicted data by log regression on test
+              y_test_preds_rf: y predicted data by log regression on test
+    output:
+              None
+    '''
     # scores
     classification_report_image(y_train, y_test,
                                 y_train_preds_lr, y_train_preds_rf,
                                 y_test_preds_lr, y_test_preds_rf)
 
-    lrc_plot = plot_roc_curve(lrc, x_test, y_test)
+    lrc_plot = plot_roc_curve(lrc_model, x_test, y_test)
 
     plt.figure(figsize=(15, 8))
     ax_var = plt.gca()
-    plot_roc_curve(cv_rfc.best_estimator_, x_test, y_test, ax=ax_var, alpha=0.8)
+    plot_roc_curve(rfc_model, x_test, y_test, ax=ax_var, alpha=0.8)
 
     lrc_plot.plot(ax=ax_var, alpha=0.8)
     plt.show()
@@ -310,14 +340,15 @@ def train_models(x_train, x_test, y_train, y_test):
     plt.savefig(os.path.join("./images/results", 'ROC_curves.png'))
     plt.close()
 
-    joblib.dump(cv_rfc.best_estimator_, './models/rfc_model.pkl')
-    joblib.dump(lrc, './models/logistic_model.pkl')
-
     # Display feature importance on train data
-    feature_importance_plot(model=cv_rfc.best_estimator_,
+    feature_importance_plot(model=rfc_model,
                             x_data=x_train,
                             output_pth="./images/results")
 
+    explainer = shap.TreeExplainer(rfc_model)
+    shap_values = explainer.shap_values(x_test)
+    shap.summary_plot(shap_values, x_test, plot_type="bar")
+    plt.savefig('./images/results/SHAP.png')
 
 if __name__ == "__main__":
     print("Importing Data")
@@ -327,4 +358,24 @@ if __name__ == "__main__":
     print("Feature Engineering")
     x_train, x_test, y_train, y_test = perform_feature_engineering(dataset, response='Churn')
     print("Train Models")
-    train_models(x_train, x_test, y_train, y_test)
+    train_models(x_train, y_train)
+
+    print("Load Trained Models")
+    rfc_model = joblib.load('./models/rfc_model.pkl')
+    lr_model = joblib.load('./models/logistic_model.pkl')
+
+    print("Predict")
+    y_train_preds_rf = predict_models(rfc_model, x_train)
+    y_test_preds_rf = predict_models(rfc_model, x_test)
+
+    y_train_preds_lr = predict_models(lr_model, x_train)
+    y_test_preds_lr = predict_models(lr_model, x_test)
+
+    print("Evaluate")
+    evaluate_models(lr_model, rfc_model,
+                    x_train, x_test,
+                    y_train, y_test,
+                    y_train_preds_lr, y_train_preds_rf,
+                    y_test_preds_lr, y_test_preds_rf)
+
+
